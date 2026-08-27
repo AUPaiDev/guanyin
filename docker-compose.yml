@@ -1,0 +1,13 @@
+services:
+  guanyin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: guanyin-fortune:latest
+    container_name: guanyin-fortune
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - GEMINI_API_KEY=${GEMINI_API_KEY}

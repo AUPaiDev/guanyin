@@ -1,0 +1,6 @@
+{
+  "name": "观音灵签 · 水墨求签",
+  "description": "东方水墨意境的观音灵签抽签解惑体验，支持默念起念、亲手绘符、观音解签知识系统与精美水墨签卡分享。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
