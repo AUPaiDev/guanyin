@@ -208,7 +208,7 @@ export default function App() {
                   观音灵签
                 </h1>
                 <span className="text-[9px] px-1 py-0.2 rounded-xs bg-[#D92D20] text-white tracking-wider font-sans font-medium">
-                  普陀
+                  普陀 · v1.0.1 (CI/CD)
                 </span>
               </div>
               <p className="text-[10px] text-stone-500 italic font-serif leading-none mt-0.5">
