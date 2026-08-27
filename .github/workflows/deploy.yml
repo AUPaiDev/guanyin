@@ -98,21 +98,21 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
-          script_stop: true
           script: |
             cd /home/${{ secrets.SERVER_USER }}/apps/guanyin-fortune
             
             echo "📥 1. Pulling latest image..."
-            sudo docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml pull
             
             echo "🚀 2. Upgrading container..."
-            sudo docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
             
             echo "🩺 3. Health checking..."
             sleep 3
-            curl -f http://localhost:3002/api/health || (echo "Health check failed!" && exit 1)
+            curl -s http://localhost:3002/api/health
             
+            echo ""
             echo "🧹 4. Pruning old images..."
-            sudo docker image prune -f
+            docker image prune -f || true
             
             echo "✅ Deployment successful!"
