@@ -68,7 +68,7 @@ export interface AIInterpretation {
   blessingVerse: string;     // 4-line personalized blessing verse
 }
 
-export type AppTab = 'divination' | 'library' | 'woodenfish' | 'history';
+export type AppTab = 'divine' | 'wooden_fish' | 'library' | 'history';
 
 export interface FortuneRecord {
   id: string;

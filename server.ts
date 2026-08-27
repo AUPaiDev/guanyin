@@ -1,6 +1,9 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import compression from "compression";
+import rateLimit from "express-rate-limit";
 import { GoogleGenAI, Type } from "@google/genai";
 
 dotenv.config();
@@ -8,7 +11,58 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: "15mb" }));
+// Trust reverse proxy (Docker, Nginx, ALB) for accurate client IP detection
+app.set("trust proxy", 1);
+
+// 1. Security Headers (with CSP configured to allow required Google fonts and inline styles/images)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "blob:", "https://*"],
+        connectSrc: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+// 2. Performance: Gzip compression for faster asset delivery
+app.use(compression());
+
+// 3. Security: Reasonable JSON payload limit (reduced from 15MB to 2MB to prevent DoS)
+app.use(express.json({ limit: "2mb" }));
+
+// 4. Security: Global Rate Limiter for general endpoints
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "请求过于频繁，请稍后再试。" },
+});
+app.use(globalLimiter);
+
+// 5. Security: Strict Rate Limiter for AI Interpretation (protect Gemini API quotas & costs)
+const aiInterpretationLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // Max 10 spiritual interpretations per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "解签感应过于频繁，请静心片刻后再试。",
+    symbolInsight: "心若浮躁，难窥机玄。宜定心宁神，少顷再求大士指点。",
+    questionAnalysis: "所求之事需以诚心待之，稍事休息，心定则灵。",
+    philosophicalWisdom: "急躁难成事，心定自安然。",
+    favorableAction: ["静心调息", "安定心神"],
+    unfavorableAction: ["急功近利", "心浮气躁"],
+    blessingVerse: "静坐常思自心定\n浮尘散去见明心\n待得云开冰解后\n清风送吉照前程",
+  },
+});
 
 // Lazy initialize Gemini client safely
 function getGeminiClient(): GoogleGenAI | null {
@@ -32,22 +86,30 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", app: "guanyin-fortune" });
 });
 
-// API route for AI Guanyin Master spiritual interpretation based on lot + hand-drawn symbol + question
-app.post("/api/interpret-lot", async (req, res) => {
+// API route for AI Guanyin Master spiritual interpretation
+app.post("/api/interpret-lot", aiInterpretationLimiter, async (req, res) => {
   try {
     const { lot, drawnSymbolDataUrl, question, category } = req.body;
 
-    if (!lot) {
+    if (!lot || typeof lot !== "object") {
       return res.status(400).json({ error: "Lot data is required" });
     }
+
+    // Input sanitization & bounds checking (Prompt Injection & length defense)
+    const sanitizedQuestion = typeof question === "string" 
+      ? question.slice(0, 120).replace(/[\r\n\t]/g, " ").trim() 
+      : "心中默念之事";
+    const sanitizedCategory = typeof category === "string" 
+      ? category.slice(0, 30).trim() 
+      : "决疑";
 
     const ai = getGeminiClient();
     if (!ai) {
       // Return rich default Zen interpretation if API key not present
       return res.json({
         symbolInsight: "符印笔触圆润内敛，如静水深流。印契中显露纯善与持重之气，心意至诚，感通自然。",
-        questionAnalysis: `所问【${question || "心中所惑"}】，此签为【${lot.title} · ${lot.quality}】。《观音灵签》示曰：“${lot.verseMeaning}”。机缘正应于心意之间，顺天应人自获吉祥。`,
-        philosophicalWisdom: `${lot.zenAdvice} 观音大士慈眼视众生，当下宜安顿心神，不为外境所扰，以清净心待时成事。`,
+        questionAnalysis: `所问【${sanitizedQuestion}】，此签为【${lot.title} · ${lot.quality}】。《观音灵签》示曰：“${lot.verseMeaning}”。机缘正应于心意之间，顺天应人自获吉祥。`,
+        philosophicalWisdom: `${lot.zenAdvice || "顺时应机，修善积福。"} 观音大士慈眼视众生，当下宜安顿心神，不为外境所扰，以清净心待时成事。`,
         favorableAction: ["静心养性", "持正念", "广结善缘", "沉稳谋划"],
         unfavorableAction: ["心浮气躁", "急功近利", "妄信谗言", "固执己见"],
         blessingVerse: "一念至诚通法界\n观音慈光照灵台\n洗尽尘劳随缘过\n春风拂处百花开"
@@ -59,13 +121,13 @@ app.post("/api/interpret-lot", async (req, res) => {
 请针对求签者的具体信息，进行极具东方水墨玄学意境、深邃慈悲且极富实修启发性的解签批断。
 
 【求签人信息】：
-- 所问事由分类：${category || "心中所惑 / 决疑"}
-- 具体所问心事：${question || "心中默念之事，未明言"}
+- 所问事由分类：${sanitizedCategory}
+- 具体所问心事：${sanitizedQuestion}
 - 抽得签文：${lot.title}（${lot.quality}）
-- 签诗四句：${lot.poemLines?.join(" / ")}
-- 传统诗意：${lot.verseMeaning}
-- 传统典故：${lot.storyAllusion}
-- 传统解曰：${lot.explanation}
+- 签诗四句：${Array.isArray(lot.poemLines) ? lot.poemLines.join(" / ") : ""}
+- 传统诗意：${lot.verseMeaning || ""}
+- 传统典故：${lot.storyAllusion || ""}
+- 传统解曰：${lot.explanation || ""}
 
 请结合求签者在观音菩萨座前亲手所绘之灵符印契（如附图），以及所问之事和抽中的签诗，给出深度的禅理批断。
 语气温润典雅、充满东方禅意与慈悲大智慧，给人以定心明志的力量。
@@ -81,10 +143,14 @@ app.post("/api/interpret-lot", async (req, res) => {
 }
 `;
 
-    const contents: any = [];
+    const contents: any[] = [];
 
-    // If drawn image is provided, send as multimodal part
-    if (drawnSymbolDataUrl && drawnSymbolDataUrl.startsWith("data:image/")) {
+    // If drawn image is provided, sanitize & validate base64 size before sending to LLM
+    if (
+      typeof drawnSymbolDataUrl === "string" &&
+      drawnSymbolDataUrl.startsWith("data:image/") &&
+      drawnSymbolDataUrl.length < 2 * 1024 * 1024 // Validate max image string length (2MB)
+    ) {
       const match = drawnSymbolDataUrl.match(/^data:([^;]+);base64,(.+)$/);
       if (match) {
         const mimeType = match[1];
@@ -157,7 +223,6 @@ app.post("/api/interpret-lot", async (req, res) => {
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
-    // Dynamic import for development only
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
