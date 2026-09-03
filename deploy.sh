@@ -9,7 +9,7 @@ set -e
 
 SERVER="${SERVER:-43.198.108.50}"
 USER="${USER_NAME:-ubuntu}"
-PORT="${PORT:-222}"
+PORT="${PORT:-22}"
 PEM_KEY="${PEM_KEY:-$HOME/Downloads/tau.pem}"
 SSH_OPTS="-o StrictHostKeyChecking=no -p ${PORT} -i ${PEM_KEY}"
 REMOTE_DIR="/home/${USER}/apps/guanyin-fortune"
