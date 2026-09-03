@@ -9,7 +9,7 @@ set -e
 
 SERVER="${SERVER:-43.198.108.50}"
 USER="${USER_NAME:-ubuntu}"
-PORT="${PORT:-22}"
+PORT="${PORT:-222}"
 PEM_KEY="${PEM_KEY:-$HOME/Downloads/tau.pem}"
 SSH_OPTS="-o StrictHostKeyChecking=no -p ${PORT} -i ${PEM_KEY}"
 REMOTE_DIR="/home/${USER}/apps/guanyin-fortune"
@@ -32,7 +32,7 @@ echo "  🔮 观音灵签 AWS 一键部署"
 echo "======================================"
 
 echo ""
-echo "1️⃣  测试 22 端口 SSH 连接..."
+echo "1️⃣  测试 ${PORT} 端口 SSH 连接..."
 ssh ${SSH_OPTS} ${USER}@${SERVER} "echo '✅ SSH 连接成功'" || {
     echo "❌ SSH 连接失败，请检查密钥与网络连通性"
     exit 1
