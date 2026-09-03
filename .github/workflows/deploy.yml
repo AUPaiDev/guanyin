@@ -107,6 +107,9 @@ jobs:
             if [ -n "$GEMINI_API_KEY" ]; then
               echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
             fi
+
+            echo "📄 0. Syncing latest compose configuration..."
+            curl -sSL https://raw.githubusercontent.com/AUPaiDev/guanyin/main/docker-compose.prod.yml -o docker-compose.prod.yml
             
             echo "📥 1. Pulling latest image..."
             docker compose -f docker-compose.prod.yml pull || sudo docker compose -f docker-compose.prod.yml pull
