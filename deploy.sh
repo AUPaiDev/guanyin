@@ -7,7 +7,7 @@ set -e
 # 用法: GEMINI_API_KEY="xxx" ./deploy.sh
 # ==========================================
 
-SERVER="${SERVER:-43.198.108.50}"
+SERVER="${SERVER:-43.198.108.91}"
 USER="${USER_NAME:-ubuntu}"
 PORT="${PORT:-22}"
 PEM_KEY="${PEM_KEY:-$HOME/Downloads/tau.pem}"
