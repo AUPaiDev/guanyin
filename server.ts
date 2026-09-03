@@ -14,7 +14,7 @@ const PORT = 3000;
 // Trust reverse proxy (Docker, Nginx, ALB) for accurate client IP detection
 app.set("trust proxy", 1);
 
-// 1. Security Headers (with CSP configured to allow required Google fonts and inline styles/images)
+// 1. Security Headers (disabled HSTS and upgradeInsecureRequests for HTTP IP deployment)
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -25,8 +25,10 @@ app.use(
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "blob:", "https://*"],
         connectSrc: ["'self'"],
+        upgradeInsecureRequests: null,
       },
     },
+    hsts: false,
     crossOriginEmbedderPolicy: false,
   })
 );
@@ -37,7 +39,7 @@ app.use(compression());
 // 3. Security: Reasonable JSON payload limit (reduced from 15MB to 2MB to prevent DoS)
 app.use(express.json({ limit: "2mb" }));
 
-// 4. Security: Global Rate Limiter for general endpoints
+// 4. Security: Rate Limiter for API endpoints (avoid throttling static assets)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 300, // Limit each IP to 300 requests per 15 minutes
@@ -45,7 +47,7 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "请求过于频繁，请稍后再试。" },
 });
-app.use(globalLimiter);
+app.use("/api/", globalLimiter);
 
 // 5. Security: Strict Rate Limiter for AI Interpretation (protect Gemini API quotas & costs)
 const aiInterpretationLimiter = rateLimit({
