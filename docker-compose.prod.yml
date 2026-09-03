@@ -8,3 +8,10 @@ services:
     environment:
       - NODE_ENV=production
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+
+  frps:
+    image: snowdreamtech/frps:0.37.0
+    container_name: frps
+    restart: unless-stopped
+    network_mode: host
+    command: ["-p", "7000", "-t", "homepage_frp_secret_2026"]
