@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Temporary intermediate extraction file
+scripts/raw_lots_source.json

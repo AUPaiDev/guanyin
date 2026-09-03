@@ -70,6 +70,35 @@ export interface AIInterpretation {
 
 export type AppTab = 'divine' | 'wooden_fish' | 'library' | 'history';
 
+// ─── Multilingual translation types ──────────────────────────────────────────
+
+/** Supported display languages */
+export type LotLanguage = 'zh' | 'en' | 'ja';
+
+export interface LotAspectTranslation {
+  label: string;
+  result: string;
+}
+
+/** Translation for a single lot's text fields (excludes title & poemLines) */
+export interface LotFieldTranslation {
+  meaning: string;
+  allusion: string;
+  explanation: string;
+  aspects: LotAspectTranslation[];
+  keywords: string[];
+  zenAdvice: string;
+}
+
+/** Full translation entry for one lot: { en: {...}, ja: {...} } */
+export interface LotTranslationEntry {
+  en: LotFieldTranslation;
+  ja: LotFieldTranslation;
+}
+
+/** The full translation map: { "1": {...}, "2": {...}, ... } */
+export type LotTranslationMap = Record<string, LotTranslationEntry>;
+
 export interface FortuneRecord {
   id: string;
   timestamp: number;

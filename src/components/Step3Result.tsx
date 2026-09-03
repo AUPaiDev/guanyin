@@ -15,8 +15,10 @@ import {
   Flame,
   Volume2
 } from 'lucide-react';
-import { GuanyinLot, AIInterpretation } from '../types';
+import { GuanyinLot, AIInterpretation, LotLanguage } from '../types';
 import { playWoodenFish, playSingingBowl } from '../utils/audio';
+import { useLotTranslation } from '../utils/useLotTranslation';
+
 
 interface Step3Props {
   lot: GuanyinLot;
@@ -42,6 +44,10 @@ export const Step3Result: React.FC<Step3Props> = ({
   onOpenLotBrowser
 }) => {
   const [activeTab, setActiveTab] = useState<'classic' | 'ai' | 'aspects'>('ai');
+  const [lang, setLang] = useState<LotLanguage>('zh');
+  const { t, hasTranslation } = useLotTranslation(lot, lang);
+
+
 
   const getFortuneTypeBadge = (quality: string) => {
     switch (quality) {
@@ -73,7 +79,26 @@ export const Step3Result: React.FC<Step3Props> = ({
         </p>
       </div>
 
-      {/* 2. Main Mobile Vertical Flow */}
+      {/* Language Switcher — only shown when translation data is available */}
+      {hasTranslation && (
+        <div className="flex items-center gap-1 mb-2 self-end">
+          {(['zh', 'en', 'ja'] as LotLanguage[]).map((l) => (
+            <button
+              key={l}
+              onClick={() => { setLang(l); playWoodenFish(); }}
+              className={`px-2 py-0.5 rounded-sm text-[10px] font-bold tracking-wider transition-all cursor-pointer border font-serif ${
+                lang === l
+                  ? 'bg-[#1a1a1a] text-stone-100 border-stone-900'
+                  : 'bg-white/70 text-stone-600 border-stone-300 hover:bg-stone-200'
+              }`}
+            >
+              {l === 'zh' ? '中文' : l === 'en' ? 'EN' : '日本語'}
+            </button>
+          ))}
+        </div>
+      )}
+
+
       <div className="w-full flex flex-col gap-3 items-stretch">
         
         {/* Mobile Top: Traditional Authentic Bamboo Scroll */}
@@ -129,14 +154,19 @@ export const Step3Result: React.FC<Step3Props> = ({
             {/* Historical Story & Palace Info */}
             <div className="space-y-1.5 text-xs text-stone-700 font-serif border-t border-stone-300 pt-2.5">
               <div className="flex items-start gap-1.5">
-                <span className="text-stone-900 font-bold shrink-0">典故：</span>
-                <span className="text-stone-800">{lot.storyAllusion}</span>
+                <span className="text-stone-900 font-bold shrink-0">
+                  {lang === 'en' ? 'Legend:' : lang === 'ja' ? '故事：' : '典故：'}
+                </span>
+                <span className="text-stone-800">{t('allusion', lot.storyAllusion)}</span>
               </div>
               <div className="flex items-start gap-1.5">
-                <span className="text-stone-900 font-bold shrink-0">诗意：</span>
-                <span className="text-stone-800 leading-relaxed">{lot.verseMeaning}</span>
+                <span className="text-stone-900 font-bold shrink-0">
+                  {lang === 'en' ? 'Verse Meaning:' : lang === 'ja' ? '詩意：' : '诗意：'}
+                </span>
+                <span className="text-stone-800 leading-relaxed">{t('meaning', lot.verseMeaning)}</span>
               </div>
             </div>
+
 
             {/* Drawn Symbol Watermark / Stamp at bottom */}
             {drawnSymbolDataUrl && (
@@ -301,12 +331,25 @@ export const Step3Result: React.FC<Step3Props> = ({
             >
               <h4 className="text-xs sm:text-sm font-bold text-stone-900 mb-3 flex items-center gap-1.5 font-serif">
                 <Compass className="w-3.5 h-3.5 text-[#D92D20]" />
-                <span>各事占验吉凶（依《观音全签》古本释义）</span>
+                <span>
+                  {lang === 'en'
+                    ? 'Fortune by Life Aspect (Classic Guanyin Oracle)'
+                    : lang === 'ja'
+                    ? '各事の占い吉凶（観音全籤古典より）'
+                    : '各事占验吉凶（依《观音全签》古本释义）'}
+                </span>
               </h4>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {lot.aspects && lot.aspects.length > 0 ? (
-                  lot.aspects.map((item, idx) => (
+                {(() => {
+                  // Use translated aspects if available, else fall back to original
+                  const translatedAspects = lang !== 'zh'
+                    ? (t('aspects', lot.aspects) as { label: string; result: string }[])
+                    : lot.aspects;
+                  const aspectsToShow = translatedAspects && translatedAspects.length > 0
+                    ? translatedAspects
+                    : lot.aspects;
+                  return aspectsToShow.map((item, idx) => (
                     <div
                       key={idx}
                       className="p-2 bg-white/80 border border-stone-300 rounded-sm flex items-center justify-between"
@@ -318,22 +361,8 @@ export const Step3Result: React.FC<Step3Props> = ({
                         {item.result || '平顺'}
                       </span>
                     </div>
-                  ))
-                ) : (
-                  ['家宅', '自身', '求财', '交易', '婚姻', '六甲', '行人', '田蚕', '寻人', '公讼', '移徙', '疾病'].map((label, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2 bg-white/80 border border-stone-300 rounded-sm flex items-center justify-between"
-                    >
-                      <span className="text-xs font-bold text-stone-900 font-serif">
-                        {label}
-                      </span>
-                      <span className="text-xs text-stone-700 font-serif font-medium">
-                        吉顺
-                      </span>
-                    </div>
-                  ))
-                )}
+                  ));
+                })()}
               </div>
             </motion.div>
           )}
@@ -347,29 +376,41 @@ export const Step3Result: React.FC<Step3Props> = ({
             >
               <div className="p-3 bg-white/80 border border-stone-300 rounded-sm">
                 <h5 className="text-[10px] text-[#D92D20] font-bold tracking-widest uppercase mb-0.5">
-                  签诗典故渊源
+                  {lang === 'en' ? 'Historical Legend' : lang === 'ja' ? '故事の縁起' : '签诗典故渊源'}
                 </h5>
-                <h4 className="text-sm sm:text-base font-bold text-stone-900 mb-1">
-                  【{lot.storyAllusion}】
-                </h4>
                 <p className="text-xs text-stone-700 leading-relaxed">
-                  本签借古人典故昭示时运。凡事宜依理而行，莫存侥幸。虽有波折，终能吉人天相。
+                  {t('allusion', lot.storyAllusion)}
                 </p>
               </div>
 
               <div className="p-3 bg-white/80 border border-stone-300 rounded-sm">
                 <h5 className="text-[10px] text-[#D92D20] font-bold tracking-widest uppercase mb-0.5">
-                  解曰古文
+                  {lang === 'en' ? 'Sacred Interpretation' : lang === 'ja' ? '解曰古文' : '解曰古文'}
                 </h5>
                 <p className="text-xs sm:text-sm font-bold text-stone-900 mb-1">
-                  “{lot.explanation}”
+                  "{t('explanation', lot.explanation)}"
                 </p>
                 <p className="text-xs text-stone-600 leading-relaxed">
-                  此卦象意如春雷初动，万物苏醒。只要存心正直，不与人争一时之短长，必能受观音慈佑。
+                  {lang === 'en'
+                    ? 'This hexagram speaks to the present moment. Walk the right path with integrity; though there may be obstacles, the compassionate grace of Guanyin will ultimately prevail.'
+                    : lang === 'ja'
+                    ? 'この卦は現在の状況を示します。正しき道を歩み誠実であれば、観音様の慈悲によって必ず道が開かれます。'
+                    : '此卦象意如春雷初动，万物苏醒。只要存心正直，不与人争一时之短长，必能受观音慈佑。'}
+                </p>
+              </div>
+
+              {/* Zen Advice */}
+              <div className="p-3 bg-white/80 border border-stone-300 rounded-sm border-l-2 border-l-[#D92D20]">
+                <h5 className="text-[10px] text-[#D92D20] font-bold tracking-widest uppercase mb-0.5">
+                  {lang === 'en' ? 'Zen Counsel' : lang === 'ja' ? '禅心の開示' : '禅心开示'}
+                </h5>
+                <p className="text-xs text-stone-700 leading-relaxed italic">
+                  {t('zenAdvice', lot.zenAdvice)}
                 </p>
               </div>
             </motion.div>
           )}
+
 
           {/* Action Buttons Toolbar (Mobile First) */}
           <div className="mt-4 flex items-center gap-2 pb-2">
