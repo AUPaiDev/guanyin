@@ -7,10 +7,10 @@ set -e
 # 用法: GEMINI_API_KEY="xxx" ./deploy.sh
 # ==========================================
 
-SERVER="${SERVER:-43.198.108.91}"
+SERVER="${SERVER:-18.163.37.199}"
 USER="${USER_NAME:-ubuntu}"
 PORT="${PORT:-22}"
-PEM_KEY="${PEM_KEY:-$HOME/Downloads/tau.pem}"
+PEM_KEY="${PEM_KEY:-$HOME/Downloads/tau_ec2.pem}"
 SSH_OPTS="-o StrictHostKeyChecking=no -p ${PORT} -i ${PEM_KEY}"
 REMOTE_DIR="/home/${USER}/apps/guanyin-fortune"
 
